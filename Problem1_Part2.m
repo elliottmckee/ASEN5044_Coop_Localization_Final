@@ -59,6 +59,7 @@ x0 = [xi_g0;      %[m] AGV East Pos (Xi)
         eta_a0;       %[m] UAV East Pos (eta)
         theta_a0];       %[RAD] UAV 
 
+    
 %% Nominal Trajectory Functions
 theta_g = @(t)  theta_g0 + ( v_g * tan(phi_g) / L ) * t;
 theta_a = @(t)  theta_a0 + ( pi / 25 ) * t;
@@ -86,6 +87,19 @@ F_tilde = @(t, dT)  eye(6) + dT * A_tilde(t);
 
 % Gtilde Matrix
 G_tilde = @(t, dT)   dT * B_tilde(t);
+
+
+%% Measurement Equation 
+
+% Measurement Model as a Function of a given state (6x1 Matrix)
+h = @(X)     [ atan((X(5) - X(2) )/( X(4) - X(1))) - X(3) ;
+                    sqrt((X(1) - X(4))^2 + (X(2) - X(5))^2) ; 
+                    atan((X(2) - X(5))/(X(1) - X(4))) - X(6) ; 
+                    X(4) ; 
+                    X(5)];
+
+H = jacobian(h,x);
+
 
 
 %% Construct Nominal Trajectory State Vector

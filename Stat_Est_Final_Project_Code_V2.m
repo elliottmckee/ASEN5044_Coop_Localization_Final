@@ -29,10 +29,9 @@ x = [xg;      %[m] AGV East Pos (Xi)
        ea;       %[m] UAV East Pos (eta)
        ta];       %[RAD] UAV 
 
-% 
-f = [vg*cos(tg),    vg*sin(tg),     vg/L*tan(pg),        va*cos(ta),va*sin(ta),      wa];
+f = [vg*cos(tg),    vg*sin(tg),vg/L*tan(pg),        va*cos(ta),va*sin(ta),      wa];
 
-A_sym = jacobian(f,x);
+A = jacobian(f,x);
 
 
 
@@ -40,8 +39,8 @@ A_sym = jacobian(f,x);
 % At initial point in the nominal trajectory
 a= subs(A,[vg, va, tg, ta], [2, 12, pi/2, -pi/2]);
 
-%Discrete time timestep
-dt = 0.1; 
+
+dt = 0.1; % discrete time
 
 % Variable F matrix
 F = expm(A.*delta_t); 
@@ -55,6 +54,8 @@ FF = expm(a.*dt);
 h = [ atan((ea - eg)/(xa -xg)) - tg ; sqrt((xg - xa)^2 + (eg - ea)^2) ; atan((eg - ea)/(xg -xa)) - ta ; xa ; ea];
 u = [vg;pg;va;wa];
 H = jacobian(h,x);
+
+
 xi = [10,0,pi/2,-60,0,-pi/2];
 % Initial H matrix at initial nominal trajectory point
 HH = subs(H,x,xi);

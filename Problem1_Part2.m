@@ -124,7 +124,6 @@ opts = odeset('RelTol',1e-11,'AbsTol',1e-13);
 x_nom = x_nom';
 
 
-
 %Nominal Measurement
 y_nom = zeros(5, length(tVec));
 for i = 1:length(tVec)
@@ -136,50 +135,7 @@ y_nom(1,:) = wrapToPi(y_nom(1,:));
 y_nom(3,:) = wrapToPi(y_nom(3,:));
 
 
-%% MEASUREMENT STATE Plotting
-figure()
-sgtitle('Perturbation States vs. Time, Linearized Dynamics Simulation')
 
-%% AGV States
-% 1st Measure
-subplot(5,1,1)
-hold on
-plot(tVec, y_nom(1,:))
-xlabel('Time [s]')
-ylabel('$\gamma_{ag}$ [m] ', 'interpreter', 'latex')
-%axis([0 100 -1 1])
-
-% 2nd Measure
-subplot(5,1,2)
-hold on
-plot(tVec, y_nom(2,:))
-xlabel('Time [s]')
-ylabel('$\rho_{ga}$ [m] ', 'interpreter', 'latex')
-%axis([0 100 -1 1])
-
-% 3rd Measure
-subplot(5,1,3)
-hold on
-plot(tVec, y_nom(3,:))
-xlabel('Time [s]')
-ylabel('$\gamma_{ga}$ [m] ', 'interpreter', 'latex')
-%axis([0 100 -1 1])
-
-% 4th Measure
-subplot(5,1,4)
-hold on
-plot(tVec, y_nom(4,:))
-xlabel('Time [s]')
-ylabel('$\xi_a$ [m] ', 'interpreter', 'latex')
-%axis([0 100 -1 1])
-
-% 5th Measure
-subplot(5,1,5)
-hold on
-plot(tVec, y_nom(5,:))
-xlabel('Time [s]')
-ylabel('$\eta_a$ [m] ', 'interpreter', 'latex')
-%axis([0 100 -1 1])
 
 
 %% Propogate State Forward with Time

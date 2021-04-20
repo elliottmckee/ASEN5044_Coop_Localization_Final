@@ -51,6 +51,9 @@ opts = odeset('RelTol',1e-11,'AbsTol',1e-13);
 x(:,3) = wrapToPi(x(:,3));
 x(:,6) = wrapToPi(x(:,6));
 
+%% Save Output Matrix
+save('nonlinear_simdata', 'x')
+
 
 %% Plotting
 figure()

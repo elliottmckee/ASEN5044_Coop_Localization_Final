@@ -133,6 +133,10 @@ x_full(3,:) = wrapToPi(x_full(3,:));
 x_full(6,:) = wrapToPi(x_full(6,:));
 
 
+%% Load Non-linear Simulation Data
+nonlineardata = load('nonlinear_simdata.mat')
+x_nonlin = nonlineardata.x'
+
 
 %% TOTAL STATE Plotting
 figure()
@@ -143,14 +147,17 @@ sgtitle('TOTAL SYSTEM STATES vs. Time, Linearized Dynamics Simulation')
 subplot(6,1,1)
 hold on
 plot(tVec, x_full(1,:))
+plot(tVec, x_nonlin(1,:), '--')
 xlabel('Time [s]')
 ylabel('$\xi_g$ [m] ', 'interpreter', 'latex')
+legend('Linearized', 'Nonlinear', 'location', 'northeast')
 axis([0 100 10 16])
 
 % AGV North Position
 subplot(6,1,2)
 hold on
 plot(tVec, x_full(2,:))
+plot(tVec, x_nonlin(2,:), '--')
 xlabel('Time [s]')
 ylabel('$\eta_g$ [m] ', 'interpreter', 'latex')
 axis([0 100 -2 4])
@@ -159,6 +166,7 @@ axis([0 100 -2 4])
 subplot(6,1,3)
 hold on
 plot(tVec, x_full(3, :))
+plot(tVec, x_nonlin(3,:), '--')
 xlabel('Time [s]')
 ylabel('$\theta_g$ [RAD] ', 'interpreter', 'latex')
 axis([0 100 -3 3])
@@ -169,6 +177,7 @@ axis([0 100 -3 3])
 subplot(6,1,4)
 hold on
 plot(tVec, x_full(4, :))
+plot(tVec, x_nonlin(4,:), '--')
 xlabel('Time [s]')
 ylabel('$\xi_a$ [m] ', 'interpreter', 'latex')
 axis([0 100 -60 150])
@@ -177,6 +186,7 @@ axis([0 100 -60 150])
 subplot(6,1,5)
 hold on
 plot(tVec, x_full(5, :))
+plot(tVec, x_nonlin(5,:), '--')
 xlabel('Time [s]')
 ylabel('$\eta_a$ [m] ', 'interpreter', 'latex')
 axis([0 100 -100 100])
@@ -185,6 +195,7 @@ axis([0 100 -100 100])
 subplot(6,1,6)
 hold on
 plot(tVec, x_full(6, :))
+plot(tVec, x_nonlin(6,:), '--')
 xlabel('Time [s]')
 ylabel('$\theta_a$ [RAD] ', 'interpreter', 'latex')
 axis([0 100 -3 3])

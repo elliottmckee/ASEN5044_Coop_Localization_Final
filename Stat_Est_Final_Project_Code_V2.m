@@ -56,9 +56,24 @@ u = [vg;pg;va;wa];
 H = jacobian(h,x);
 
 
-xi = [10,0,pi/2,-60,0,-pi/2];
+
+%Manually Entered
+H_tilde_manual = @(X) [ (X(5) - X(2))/((X(5) - X(2))^2 + (X(1)-X(4))^2) , (X(1) - X(4))/((X(5) - X(2))^2 + (X(4) - X(1))^2) , -1 , (X(2) - X(5))/((X(5) - X(2))^2 + (X(4) - X(1))^2 ) , (X(4) - X(1))/((X(5) - X(2))^2 + (X(4) - X(1))^2) , 0 ; ...
+                 (X(1) - X(4))/sqrt(((X(5) - X(2))^2 + (X(1)-X(4))^2)) , (X(2) - X(5))/sqrt(((X(5) - X(2))^2 + (X(1)-X(4))^2)), 0 , (X(4) - X(1))/sqrt(((X(5) - X(2))^2 + (X(1)-X(4))^2)) , (X(5) - X(2))/sqrt(((X(5) - X(2))^2 + (X(1)-X(4))^2)),0;...
+                 (X(5) - X(2))/((X(5) - X(2))^2 + (X(1)-X(4))^2) , (X(1) - X(4))/((X(5) - X(2))^2 + (X(4) - X(1))^2) , 0 , (X(2) - X(5))/((X(5) - X(2))^2 + (X(4) - X(1))^2 ) , (X(4) - X(1))/((X(5) - X(2))^2 + (X(4) - X(1))^2) , -1 ; ...
+                                       0                         ,                        0                          , 0 ,                           1                        ,                             0                     ,  0; ...
+                                       0                         ,                        0                          , 0 ,                           0                        ,                             1                     ,  0];
+             
+
+xi = [10,0,pi/2,-60,0,-pi/2]';
 % Initial H matrix at initial nominal trajectory point
-HH = subs(H,x,xi);
+HH = double(subs(H,x,xi))
+
+Htilde_Check = H_tilde_manual(xi)
+
+
+
+
 
 % Initialize Observability
 O = zeros( 5*6,6);

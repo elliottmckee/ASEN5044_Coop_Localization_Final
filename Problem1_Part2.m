@@ -11,7 +11,7 @@ Currently just using the hard coded A and B matrices found by hand
 
 
 %% Housekeeping
-clc;clear;close all;
+clc;clear;%close all;
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -90,19 +90,29 @@ G_tilde = @(t, dT)   dT * B_tilde(t);
 
 
 %% Measurement Equation 
+% h = @(X)     [ wrapToPi(atan((X(5) - X(2) )/ ( X(4) - X(1)))) - wrapToPi(X(3)) ;
+%                     sqrt((X(1) - X(4))^2 + (X(2) - X(5))^2) ; 
+%                     wrapToPi(atan((X(2) - X(5))/ (X(1) - X(4)))) - wrapToPi(X(6)) ; 
+%                     X(4) ; 
+%                     X(5)];
 
-% Measurement Model as a Function of a given state (6x1 Matrix)
-h = @(X)     [ atan((X(5) - X(2) )/( X(4) - X(1))) - X(3) ;
+%Measurement Model
+h = @(X)     [ wrapToPi(atan2((X(5) - X(2) ),  ( X(4) - X(1)))) - X(3);
                     sqrt((X(1) - X(4))^2 + (X(2) - X(5))^2) ; 
-                    atan((X(2) - X(5))/(X(1) - X(4))) - X(6) ; 
+                    wrapToPi(atan2((X(2) - X(5)),  (X(1) - X(4)))) - X(6) ; 
                     X(4) ; 
                     X(5)];
 
-H = jacobian(h,x);
 
+H_tilde = @(X) [ (X(5) - X(2))/((X(5) - X(2))^2 + (X(1)-X(4))^2) , (X(1) - X(4))/((X(5) - X(2))^2 + (X(4) - X(1))^2) , -1 , (X(2) - X(5))/((X(5) - X(2))^2 + (X(4) - X(1))^2 ) , (X(4) - X(1))/((X(5) - X(2))^2 + (X(4) - X(1))^2) , 0 ; ...
+                 (X(1) - X(4))/sqrt(((X(5) - X(2))^2 + (X(1)-X(4))^2)) , (X(2) - X(5))/sqrt(((X(5) - X(2))^2 + (X(1)-X(4))^2)), 0 , (X(4) - X(1))/sqrt(((X(5) - X(2))^2 + (X(1)-X(4))^2)) , (X(5) - X(2))/sqrt(((X(5) - X(2))^2 + (X(1)-X(4))^2)),0;...
+                 (X(5) - X(2))/((X(5) - X(2))^2 + (X(1)-X(4))^2) , (X(1) - X(4))/((X(5) - X(2))^2 + (X(4) - X(1))^2) , 0 , (X(2) - X(5))/((X(5) - X(2))^2 + (X(4) - X(1))^2 ) , (X(4) - X(1))/((X(5) - X(2))^2 + (X(4) - X(1))^2) , -1 ; ...
+                                       0                         ,                        0                          , 0 ,                           1                        ,                             0                     ,  0; ...
+                                       0                         ,                        0                          , 0 ,                           0                        ,                             1                     ,  0];
+             
+ 
 
-
-%% Construct Nominal Trajectory State Vector
+%% Construct Nominal Trajectory and Measurement Vectors
 %Time Vector
 tVec = 0: dt : 100;
 
@@ -115,11 +125,73 @@ x_nom = x_nom';
 
 
 
+%Nominal Measurement
+y_nom = zeros(5, length(tVec));
+for i = 1:length(tVec)
+    y_nom(:, i) = h(x_nom(:,i));
+end
+
+%% Deal with Angle Rollover
+y_nom(1,:) = wrapToPi(y_nom(1,:));
+y_nom(3,:) = wrapToPi(y_nom(3,:));
+
+
+%% MEASUREMENT STATE Plotting
+figure()
+sgtitle('Perturbation States vs. Time, Linearized Dynamics Simulation')
+
+%% AGV States
+% 1st Measure
+subplot(5,1,1)
+hold on
+plot(tVec, y_nom(1,:))
+xlabel('Time [s]')
+ylabel('$\gamma_{ag}$ [m] ', 'interpreter', 'latex')
+%axis([0 100 -1 1])
+
+% 2nd Measure
+subplot(5,1,2)
+hold on
+plot(tVec, y_nom(2,:))
+xlabel('Time [s]')
+ylabel('$\rho_{ga}$ [m] ', 'interpreter', 'latex')
+%axis([0 100 -1 1])
+
+% 3rd Measure
+subplot(5,1,3)
+hold on
+plot(tVec, y_nom(3,:))
+xlabel('Time [s]')
+ylabel('$\gamma_{ga}$ [m] ', 'interpreter', 'latex')
+%axis([0 100 -1 1])
+
+% 4th Measure
+subplot(5,1,4)
+hold on
+plot(tVec, y_nom(4,:))
+xlabel('Time [s]')
+ylabel('$\xi_a$ [m] ', 'interpreter', 'latex')
+%axis([0 100 -1 1])
+
+% 5th Measure
+subplot(5,1,5)
+hold on
+plot(tVec, y_nom(5,:))
+xlabel('Time [s]')
+ylabel('$\eta_a$ [m] ', 'interpreter', 'latex')
+%axis([0 100 -1 1])
+
+
 %% Propogate State Forward with Time
 
 %Pre-allocate Perturbation State
 x_perturb = zeros(6, length(tVec));
+%Pre-allocate Full State
 x_full = zeros(6, length(tVec));
+%Pre-allocate Measurement Perturb Vector
+y_perturb = zeros(5, length(tVec));
+%Pre-allocate Measurement FULL Vector
+y_full = zeros(5, length(tVec));
 
 %Initial Perturbation
 x_p0 = [    0;
@@ -129,8 +201,10 @@ x_p0 = [    0;
                 0;
                 0.1];
 
+%Intial Values
 x_perturb(:,1) = x_p0;
-
+x_full(:,1) = x0;
+y_perturb(:,1) = H_tilde(x0) * x_perturb(:, i);
 
 for i = 1:length(tVec)-1
 
@@ -138,18 +212,25 @@ for i = 1:length(tVec)-1
     x_perturb(:, i+1) = F_tilde(tVec(i), dt) * x_perturb(:, i) ;
     %Reconstruct Total State, using nominal trajectory calculated previously
     x_full(:, i+1) = x_nom(:, i+1) + x_perturb(:, i+1);
+
+    %Calculate Perturbation Measurements
+    y_perturb(:, i+1) = H_tilde(x_nom(:, i+1)) * x_perturb(:, i+1);
+    %Calcualte Total Measurements
+    y_full(:, i+1) = y_nom(:, i+1) + y_perturb(:, i+1);
 end
 
 
 
 %% Deal with Angle Rollover
+%States
 x_full(3,:) = wrapToPi(x_full(3,:));
 x_full(6,:) = wrapToPi(x_full(6,:));
 
 
 %% Load Non-linear Simulation Data
 nonlineardata = load('nonlinear_simdata.mat')
-x_nonlin = nonlineardata.x'
+x_nonlin = nonlineardata.x';
+y_nonlin = nonlineardata.y';
 
 
 %% TOTAL STATE Plotting
@@ -275,13 +356,53 @@ axis([0 100 -1 1])
 
 
 
+%% MEASUREMENT STATE Plotting
+figure()
+sgtitle('LINEARIZED MEASUREMENTS vs. Time, Linearized Dynamics Simulation')
 
+%% AGV States
+% 1st Measure
+subplot(5,1,1)
+hold on
+plot(tVec, y_full(1,:))
+plot(tVec, y_nonlin(:,1), '--')
+xlabel('Time [s]')
+ylabel('$\gamma_{ag}$ [RAD] ', 'interpreter', 'latex')
+legend('Linearized','NonLinear')
+%axis([0 100 -1 1])
 
+% 2nd Measure
+subplot(5,1,2)
+hold on
+plot(tVec, y_full(2,:))
+plot(tVec, y_nonlin(:,2), '--')
+xlabel('Time [s]')
+ylabel('$\rho_{ga}$ [m] ', 'interpreter', 'latex')
+%axis([0 100 -1 1])
 
+% 3rd Measure
+subplot(5,1,3)
+hold on
+plot(tVec, y_full(3,:))
+plot(tVec, y_nonlin(:,3), '--')
+xlabel('Time [s]')
+ylabel('$\gamma_{ga}$ [RAD] ', 'interpreter', 'latex')
+%axis([0 100 -1 1])
 
+% 4th Measure
+subplot(5,1,4)
+hold on
+plot(tVec, y_full(4,:))
+plot(tVec, y_nonlin(:,4), '--')
+xlabel('Time [s]')
+ylabel('$\xi_a$ [m] ', 'interpreter', 'latex')
+%axis([0 100 -1 1])
 
-
-
-
-
-
+% 5th Measure
+subplot(5,1,5)
+hold on
+plot(tVec, y_full(5,:))
+plot(tVec, y_nonlin(:,5), '--')
+xlabel('Time [s]')
+ylabel('$\eta_a$ [m] ', 'interpreter', 'latex')
+%axis([0 100 -1 1])

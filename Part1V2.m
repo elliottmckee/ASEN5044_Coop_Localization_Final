@@ -147,7 +147,7 @@ y_nom = zeros(5, length(tvec));
 y_gt = zeros(5, length(tvec));
 for i = 1:length(tvec)
     y_nom(:, i) = h(x_nom(:,i));
-    y_gt(:, i) = h(x_gt(:,i))+chol(Rtrue)*randn(5,1);
+    y_gt(:, i) = h(x_gt(:,i)) + chol(Rtrue)*randn(5,1);
 end
 
 
@@ -318,7 +318,7 @@ x_full(:,1) = x0;
 y_perturb(:,1) = H_tilde(x0) * x_perturb(:, i);
 
 for i = 1:length(tvec)-1
-
+    
     %Step forward in Time- assumes zero perturbation in control state
     x_perturb(:, i+1) = F_tilde(tvec(i), dt) * x_perturb(:, i) ;
     %Reconstruct Total State, using nominal trajectory calculated previously
@@ -328,6 +328,7 @@ for i = 1:length(tvec)-1
     y_perturb(:, i+1) = H_tilde(x_nom(:, i+1)) * x_perturb(:, i+1);
     %Calcualte Total Measurements
     y_full(:, i+1) = y_nom(:, i+1) + y_perturb(:, i+1);
+    
 end
 
 

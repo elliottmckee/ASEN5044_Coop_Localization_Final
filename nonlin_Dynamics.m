@@ -1,16 +1,14 @@
-function [dxdt] = nonlin_Dynamics(t, x, u, L)
+function [dxdt] = nonlin_Dynamics(t, x, u, L,W)
 %NONLIN_DYNAMICS ODE45 Function Call to Simulate the Robot Localization System Dynamics
 
 %{
 Definitions:
-
 State Vector x = [ xi_g
                           eta_g
                           theta_g
                            xi_a
                           eta_a
                           theta_a]
-
 Control Vector u = [ v_g
                                 phi_g
                                 v_a
@@ -28,13 +26,19 @@ v_a      = u(3); %[m/s] UAV Velocity for Nominal Trajectory
 omg_a = u(4); %[RAD/s] UAV angular velocity for Nominal Trajectory
 
 
+
+
 %% Break out State Vector
-xi_g        =  x(1);
-eta_g      = x(2);
-theta_g   = x(3);
-xi_a        =  x(4);
-eta_a      =  x(5);
-theta_a   =  x(6);
+
+% Might need to get rid of the Ws. 
+% Qtrue = diag([0.001,0.001,0.01,0.001,0.001,0.01]);
+% W = diag(random('Normal',0,Qtrue));
+xi_g        =  x(1) + W(1);
+eta_g      = x(2) + W(2);
+theta_g   = x(3) + W(3);
+xi_a        =  x(4) + W(4);
+eta_a      =  x(5) + W(5);
+theta_a   =  x(6) + W(6);
 
 
 %% Rates of Change of System States
@@ -56,7 +60,6 @@ dxdt = [d_xi_g;
             d_xi_a;
             d_eta_a;
             d_theta_a];
-             
+
 
 end
-

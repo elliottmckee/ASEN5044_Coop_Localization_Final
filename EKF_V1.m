@@ -94,6 +94,12 @@ H_tilde = @(X) [ (X(5) - X(2))/((X(5) - X(2))^2 + (X(1)-X(4))^2) , (X(1) - X(4))
                                        0                         ,                        0                          , 0 ,                           1                        ,                             0                     ,  0; ...
                                        0                         ,                        0                          , 0 ,                           0                        ,                             1                     ,  0];
                                      
+%Measurement Model
+h = @(X)     [ atan2((X(5) - X(2) ),  ( X(4) - X(1))) - X(3);
+                    sqrt((X(1) - X(4))^2 + (X(2) - X(5))^2) ; 
+                    atan2((X(2) - X(5)),  (X(1) - X(4))) - X(6) ; 
+                    X(4) ; 
+                    X(5)];
 
                                    
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%                                 
@@ -116,7 +122,7 @@ P_vecP = zeros(6,6, length(tvec));
  x_hatP(:,1) = x_nom(:,1);
  
  %Initializing P to be somewhat Large
- P_vecP(:,:,1) = 1000* eye(6);
+ P_vecP(:,:,1) = 100* eye(6);
  
  
  %% EXTENDED Kalman Filter Implementation
@@ -125,7 +131,7 @@ P_vecP = zeros(6,6, length(tvec));
  %ODE45 Options
  opts = odeset('RelTol',1e-11,'AbsTol',1e-13);
 
-
+ 
  for ii = 1:length(tvec)-1
      
      %% Time Update/Prediction Step
@@ -142,14 +148,17 @@ P_vecP = zeros(6,6, length(tvec));
     
     %% Measurement Update/Correction
     %Nonlinear Measurement Evaluation
-    yHat_kp1Min = EKF_get_next_output(x_hat_kp1Min)
-    
+    yHat_kp1Min = h(x_hat_kp1Min);
+    %Angle Wrap
+    yHat_kp1Min(1) = wrapToPi(yHat_kp1Min(1));
+    yHat_kp1Min(3) = wrapToPi(yHat_kp1Min(3));
     
     %Measurement function Jacobian at Timestep
     Htilde_kp1 = H_tilde(x_hat_kp1Min);
     
     %Nonlinear Measurement Innovation
-    eytil_kp1 = y_gt(:,ii+1) -  yHat_kp1Min;
+    eytil_kp1 = y_gt(:,ii+1)  -  yHat_kp1Min;
+    
     
     %Kalman Gain
     K_kp1 = P_kp1Min * Htilde_kp1' * inv( Htilde_kp1 * P_kp1Min *  Htilde_kp1'  + Rtrue);
@@ -158,8 +167,8 @@ P_vecP = zeros(6,6, length(tvec));
     P_vecP(:,:,ii+1) = (eye(6) - K_kp1 * Htilde_kp1) * P_kp1Min;
     x_hatP(:,ii+1) = x_hat_kp1Min + K_kp1 * eytil_kp1;
     % Deal with Angle Rollover
-    x_hatP(3) = wrapToPi(x_hatP(3));
-    x_hatP(6) = wrapToPi(x_hatP(6));
+    x_hatP(3, ii+1) = wrapToPi(x_hatP(3, ii+1));
+    x_hatP(6, ii+1) = wrapToPi(x_hatP(6, ii+1));
      
  end
  

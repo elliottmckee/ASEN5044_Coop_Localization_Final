@@ -97,14 +97,23 @@ H_tilde = @(X) [ (X(5) - X(2))/((X(5) - X(2))^2 + (X(1)-X(4))^2) , (X(1) - X(4))
     0                         ,                        0                          , 0 ,                           0                        ,                             1                     ,  0];
 
 
+%Measurement Model
+h = @(X)     [ atan2((X(5) - X(2) ),  ( X(4) - X(1))) - X(3);
+                    sqrt((X(1) - X(4))^2 + (X(2) - X(5))^2) ; 
+                    atan2((X(2) - X(5)),  (X(1) - X(4))) - X(6) ; 
+                    X(4) ; 
+                    X(5)];
 
 
-
+                
+%% TMT Setup
 %Number of Runs
-N = 50;
+N = 25;
 
-epsTOTAL = zeros(N, length(tvec));
 
+%Initialize NEES and NIS Full Solution Vectors
+eps_x_TOTAL = zeros(N, length(tvec));
+eps_y_TOTAL = zeros(N, length(tvec));
 
 for test = 1:N
     
@@ -122,7 +131,7 @@ for test = 1:N
     
     %Three dimensional matrix containing the Covariance Matrix at each time step on Each PAGE
     P_vecP = zeros(6,6, length(tvec));
-    
+    S_vec = zeros(5,5, length(tvec));
     
     
     %% Initial Guess
@@ -138,22 +147,25 @@ for test = 1:N
     
     
     %% MATRICES FOR TUNING
-    QKal = Qtrue;
-    RKal = Rtrue*1000;
+    %Coarse Tuning
+    QKal = Qtrue*2.5;
+    RKal = Rtrue*.8;
     
-    %Matrix Q Tuning
-    QKal(1,1) = QKal(1,1)*100
-    QKal(2,2) = QKal(2,2)*100
+    %QKal = Qtrue*.7;
+    %RKal = Rtrue*1000;
     
-    QKal = QKal*5
+    %Matrix Q Finer Tuning
+    QKal(1,1) = QKal(1,1)*2
+    
+    %QKal = QKal*5
     
     
     %Matrix R Tuning
-    RKal(2,2) = RKal(2,2)/100
-    RKal(4,4) = RKal(4,4)/100
-     RKal(5,5) = RKal(5,5)/100
+    %RKal(2,2) = RKal(2,2)/100
+    %RKal(4,4) = RKal(4,4)/100
+    %RKal(5,5) = RKal(5,5)/100
     
-   
+    
     
     
     %ODE45 Options
@@ -176,55 +188,70 @@ for test = 1:N
         
         %% Measurement Update/Correction
         %Nonlinear Measurement Evaluation
-        yHat_kp1Min = EKF_get_next_output(x_hat_kp1Min);
+        yHat_kp1Min = h(x_hat_kp1Min);
+        %Angle Wrap
+        yHat_kp1Min(1) = wrapToPi(yHat_kp1Min(1));
+        yHat_kp1Min(3) = wrapToPi(yHat_kp1Min(3));
         
+        %Save yHat Minus to Vector
+        y_hatP(:,ii+1) = yHat_kp1Min; 
         
         %Measurement function Jacobian at Timestep
         Htilde_kp1 = H_tilde(x_hat_kp1Min);
         
         %Nonlinear Measurement Innovation
-        eytil_kp1 = y_gt(:,ii+1) -  yHat_kp1Min;
+        eytil_kp1 = y_gt(:,ii+1)  -  yHat_kp1Min;
         
         %Kalman Gain
         K_kp1 = P_kp1Min * Htilde_kp1' * inv( Htilde_kp1 * P_kp1Min *  Htilde_kp1'  + RKal);
+        
+        %Maintain S matrix
+        S_vec(:,:,ii+1) = Htilde_kp1 * P_kp1Min *  Htilde_kp1'  + RKal;
         
         %Update State Estimate and Covariance
         P_vecP(:,:,ii+1) = (eye(6) - K_kp1 * Htilde_kp1) * P_kp1Min;
         x_hatP(:,ii+1) = x_hat_kp1Min + K_kp1 * eytil_kp1;
         % Deal with Angle Rollover
-        x_hatP(3) = wrapToPi(x_hatP(3));
-        x_hatP(6) = wrapToPi(x_hatP(6));
+        x_hatP(3, ii+1) = wrapToPi(x_hatP(3, ii+1));
+        x_hatP(6, ii+1) = wrapToPi(x_hatP(6, ii+1));
+        
         
     end
     
     
-%     %% Pull 2-Sigma's from P diagonals
-%     sigVec = zeros(6, length(tvec));
-%     
-%     for ii = 1:length(tvec)
-%         %At each timestep, pull diagonal components of P, take sqrt, multiply by two
-%         sigVec(:,ii) = 2* sqrt(diag(squeeze(P_vecP(:,:,ii)))) ;
-%     end
+    %% Pull 2-Sigma's from P diagonals
+    sigVec = zeros(6, length(tvec));
+    
+    for ii = 1:length(tvec)
+        %At each timestep, pull diagonal components of P, take sqrt, multiply by two
+        sigVec(:,ii) = 2* sqrt(diag(squeeze(P_vecP(:,:,ii)))) ;
+    end
     
     
     %% Calculate Estimation Error
-    errorVec = x_gt - x_hatP;
+    errorVec_x = x_gt - x_hatP;
+    errorVec_y = y_gt - y_hatP;
     
-    %%  Calculate NEES at each step
-    eps = zeros(1,length(tvec));
+    %%  Calculate NEES and NIS at each step
+    eps_x = zeros(1,length(tvec));
+    eps_y = zeros(1,length(tvec));
     
     for ii = 1:length(tvec)
-        eps(ii) = errorVec(:,ii)' * inv(P_vecP(:,:,ii)) * errorVec(:,ii);
+        eps_x(ii) = errorVec_x(:,ii)' * inv(P_vecP(:,:,ii)) * errorVec_x(:,ii);
+        if(ii > 1)
+            eps_y(ii) = errorVec_y(:,ii)' * inv(S_vec(:,:,ii)) * errorVec_y(:,ii);
+        end
     end
     
     %Add Epsilon Vector from given test to TOTAL epsilon error
-    epsTOTAL(test,:) = eps;
+    eps_x_TOTAL(test,:) = eps_x;
+    eps_y_TOTAL(test,:) = eps_y;
     
 end
 
 %% Average Across Test Runs at each Timestep
-
-NEESfinal = mean(epsTOTAL, 1);
+NEESfinal = mean(eps_x_TOTAL, 1);
+NISfinal = mean(eps_y_TOTAL, 1);
 
 
 
@@ -243,6 +270,21 @@ xlabel('Time')
 ylabel('NEES Statisctic')
 title('NEES Testing')
 
+%% NIS Plotting
+r1 = chi2inv(.05/2, 5*N)/N
+r2 = chi2inv(1-.05/2, 5*N)/N
+
+figure()
+hold on
+
+plot(tvec, NISfinal, 'o')
+yline(r1, 'r--')
+yline(r2,'r--')
+
+xlabel('Time')
+ylabel('NIS Statistic')
+title('NIS Testing')
+
 
 
 
@@ -256,7 +298,7 @@ end
 
 subplot(ax(1));
 hold on;
-plot(tvec, errorVec(1,:));
+plot(tvec, errorVec_x(1,:));
 plot(tvec, +sigVec(1,:),'-- r');
 plot(tvec, -sigVec(1,:),'-- r');
 xlabel('time (s)');
@@ -266,7 +308,7 @@ axis([0 100 -20 20])
 
 subplot(ax(2));
 hold on;
-plot(tvec, errorVec(2,:));
+plot(tvec, errorVec_x(2,:));
 plot(tvec, +sigVec(2,:),'-- r');
 plot(tvec, -sigVec(2,:),'-- r');
 xlabel('time (s)')
@@ -274,7 +316,7 @@ ylabel('$e_{\eta_g}$','Interpreter','latex');
 axis([0 100 -20 20])
 
 subplot(ax(3));hold on;
-plot(tvec, errorVec(3,:));
+plot(tvec, errorVec_x(3,:));
 plot(tvec, +sigVec(3,:),'-- r');
 plot(tvec, -sigVec(3,:),'-- r');
 xlabel('time (s)')
@@ -282,7 +324,7 @@ ylabel('$e_{\theta_g}$','Interpreter','latex');
 axis([0 100 -2 2])
 
 subplot(ax(4));hold on;
-plot(tvec, errorVec(4,:));
+plot(tvec, errorVec_x(4,:));
 plot(tvec, +sigVec(4,:),'-- r');
 plot(tvec, -sigVec(4,:),'-- r');
 xlabel('time (s)')
@@ -291,7 +333,7 @@ axis([0 100 -20 20])
 
 subplot(ax(5));hold on;
 % plot(tvec,x_out(5,:));
-plot(tvec, errorVec(5,:));
+plot(tvec, errorVec_x(5,:));
 plot(tvec, +sigVec(5,:),'-- r');
 plot(tvec, -sigVec(5,:),'-- r');
 xlabel('time (s)')
@@ -300,7 +342,7 @@ axis([0 100 -5 5])
 
 subplot(ax(6));hold on;
 % plot(tvec,x_out(6,:));
-plot(tvec, errorVec(6,:));
+plot(tvec, errorVec_x(6,:));
 plot(tvec, +sigVec(6,:),'-- r');
 plot(tvec, -sigVec(6,:),'-- r');
 xlabel('time (s)')

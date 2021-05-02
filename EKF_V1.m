@@ -4,6 +4,7 @@
 %Authors:
 %Elliott McKee
     %This is me somewhat re-writing the LKF_V2 version authored by Robert S.
+    %Utilizes functions created by Vishal
 %Robert S.
     
 
@@ -95,24 +96,15 @@ H_tilde = @(X) [ (X(5) - X(2))/((X(5) - X(2))^2 + (X(1)-X(4))^2) , (X(1) - X(4))
                                      
 
                                    
-                                   
-                                   
-                                   
-                                   
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%                                 
-%% LINEARIZED KALMAN IMPLEMENTATION
+%% EXTENDED KALMAN IMPLEMENTATION
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
 %% Initialize Vectors
 %Total States and Measurements
-%x_hatP = zeros( 6 , length(x_nom)); %Estimated xHat plus
+x_hatP = zeros( 6 , length(x_nom)); %Estimated xHat plus
 y_hatP = zeros( 5 , length(y_nom)); %Estimated yHat plus
-
-%Perturbation States and Measurements
-dx_hatP = zeros( 6 , length(x_nom)); %Perturbation delta_x plus
-dy_hatP = zeros( 5 , length(y_nom)); %Perturbation delta_y plus
-%du_tildeP = zeros( 6, length(x_nom) ); %ZERO
  
 %Three dimensional matrix containing the Covariance Matrix at each time step on Each PAGE
 P_vecP = zeros(6,6, length(tvec));
@@ -120,33 +112,58 @@ P_vecP = zeros(6,6, length(tvec));
  
 
  %% Initial Guess
- %Initializing X hat plus as difference between nominal and sim ZERO
- dx_hatP(:,1) = zeros(6,1);
+ %Initializing initial xHat plus to be initial nominal
+ x_hatP(:,1) = x_nom(:,1);
  
  %Initializing P to be somewhat Large
- P_vecP(:,:,1) = 1000 * eye(6);
+ P_vecP(:,:,1) = 1000* eye(6);
  
  
- %% Kalman Filter Implementation
+ %% EXTENDED Kalman Filter Implementation
  %ASSUMING GAMMA = EYE(6)
  
+ %ODE45 Options
+ opts = odeset('RelTol',1e-11,'AbsTol',1e-13);
+
+
  for ii = 1:length(tvec)-1
      
-    % Time Update Step 
-    dx_tildeMin = F_tilde(tvec(ii), dt) * dx_hatP(:,ii);
-    P_min         =  F_tilde(tvec(ii), dt) *  P_vecP(:,:,ii) *  F_tilde(tvec(ii), dt)' + Qtrue;
+     %% Time Update/Prediction Step
+     %Zero Noise ODE45 Integration
+     [~,xODERAW] = ode45(@(t,x) nonlin_Dynamics(t, x, uVec, L, zeros(6,1)), tvec(ii:ii+1), x_hatP(:,ii), opts);
+    x_hat_kp1Min = xODERAW(end,:)';
+    % Deal with Angle Rollover
+    x_hat_kp1Min(3) = wrapToPi(x_hat_kp1Min(3));
+    x_hat_kp1Min(6) = wrapToPi(x_hat_kp1Min(6));
+     
+    %Predicted Covariance Update
+    P_kp1Min         =  F_tilde(tvec(ii), dt) *  P_vecP(:,:,ii) *  F_tilde(tvec(ii), dt)' + Qtrue;
     
-    % Measurement Update/Correction
-    K_kp1 = P_min * H_tilde(x_nom(:,ii+1))' * inv( H_tilde(x_nom(:,ii+1)) * P_min * H_tilde(x_nom(:,ii+1))'  + Rtrue);
-    del_y =  y_gt(:, ii+1) - y_nom(:, ii+1);
-    P_vecP(:,:,ii+1) = (eye(6) - K_kp1 * H_tilde(x_nom(:,ii+1))) * P_min;
-    dx_hatP(:,ii+1) = dx_tildeMin + K_kp1 * (del_y - H_tilde(x_nom(:,ii+1)) * dx_tildeMin);
+    
+    %% Measurement Update/Correction
+    %Nonlinear Measurement Evaluation
+    yHat_kp1Min = EKF_get_next_output(x_hat_kp1Min)
+    
+    
+    %Measurement function Jacobian at Timestep
+    Htilde_kp1 = H_tilde(x_hat_kp1Min);
+    
+    %Nonlinear Measurement Innovation
+    eytil_kp1 = y_gt(:,ii+1) -  yHat_kp1Min;
+    
+    %Kalman Gain
+    K_kp1 = P_kp1Min * Htilde_kp1' * inv( Htilde_kp1 * P_kp1Min *  Htilde_kp1'  + Rtrue);
+    
+    %Update State Estimate and Covariance
+    P_vecP(:,:,ii+1) = (eye(6) - K_kp1 * Htilde_kp1) * P_kp1Min;
+    x_hatP(:,ii+1) = x_hat_kp1Min + K_kp1 * eytil_kp1;
+    % Deal with Angle Rollover
+    x_hatP(3) = wrapToPi(x_hatP(3));
+    x_hatP(6) = wrapToPi(x_hatP(6));
      
  end
  
  
-%% Assemble Total Estimated state
-x_hatP = x_nom + dx_hatP;
 
 %% Pull 2-Sigma's from P diagonals
 sigVec = zeros(6, length(tvec));
@@ -163,7 +180,7 @@ errorVec = x_gt - x_hatP;
  
 %% Plotting State Estimation Errors
 figure()
-sgtitle('LKF - State Estimation Errors')
+sgtitle('EKF - State Estimation Errors')
 hold on;
 for k = 1:6
     ax(k) = subplot(6,1,k);
@@ -225,7 +242,7 @@ ylabel('$e_{\theta_a}$','Interpreter','latex');
 
 %% Plotting States
 figure()
-sgtitle('LKF - States')
+sgtitle('EKF - States')
 hold on;
 for k = 1:6
     ax(k) = subplot(6,1,k);

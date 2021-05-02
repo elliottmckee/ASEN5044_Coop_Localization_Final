@@ -53,8 +53,5 @@ H_tilde_k_plus_1=[H11 H12 H13 H14 H15 H16;...
 
 
 
-
-
-
 end
 

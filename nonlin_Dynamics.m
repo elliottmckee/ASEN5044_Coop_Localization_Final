@@ -33,24 +33,24 @@ omg_a = u(4); %[RAD/s] UAV angular velocity for Nominal Trajectory
 % Might need to get rid of the Ws. 
 % Qtrue = diag([0.001,0.001,0.01,0.001,0.001,0.01]);
 % W = diag(random('Normal',0,Qtrue));
-xi_g        =  x(1) + W(1);
-eta_g      = x(2) + W(2);
-theta_g   = x(3) + W(3);
-xi_a        =  x(4) + W(4);
-eta_a      =  x(5) + W(5);
-theta_a   =  x(6) + W(6);
+xi_g        =  x(1) ;
+eta_g      = x(2) ;
+theta_g   = x(3) ;
+xi_a        =  x(4) ;
+eta_a      =  x(5) ;
+theta_a   =  x(6) ;
 
 
 %% Rates of Change of System States
 %AGV State Derivatives
-d_xi_g        =  v_g * cos(theta_g) ;
-d_eta_g      =  v_g * sin(theta_g) ;
-d_theta_g   = (v_g * tan(phi_g)) / L ;
+d_xi_g        =  v_g * cos(theta_g) + W(1);
+d_eta_g      =  v_g * sin(theta_g) + W(2);
+d_theta_g   = (v_g * tan(phi_g)) / L  + W(3);
 
 %UAV State Derivatives
-d_xi_a        =  v_a * cos(theta_a) ;
-d_eta_a      =   v_a * sin(theta_a) ;
-d_theta_a   =  omg_a ;
+d_xi_a        =  v_a * cos(theta_a) + W(4) ;
+d_eta_a      =   v_a * sin(theta_a) + W(5);
+d_theta_a   =  omg_a + W(6);
 
 
 %% Assemble into Vector

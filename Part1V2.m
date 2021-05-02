@@ -170,6 +170,9 @@ y_gt(3,:) = wrapToPi(y_gt(3,:));
 %% Save Output Matrix
 save('simulated_groundtruth', 'x_gt', 'y_gt', 'x_nom', 'y_nom')
 
+
+
+
 %% TOTAL STATE Plotting
 figure()
 sgtitle('TOTAL SYSTEM STATES vs. Time, Nominal vs. WithNoise')

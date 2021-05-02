@@ -1,5 +1,7 @@
 function [eta_g,nu_g,theta_g,eta_a,nu_a,theta_a] = EKF_breakout_state_vector(x_k_plus_1_minus)
+% Takes a state vector and breaks in down to its components
 
+% Breakout according to the definition of the state vector
 eta_g=x_k_plus_1_minus(1);
 nu_g=x_k_plus_1_minus(2);
 theta_g=x_k_plus_1_minus(3);

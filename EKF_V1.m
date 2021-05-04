@@ -122,7 +122,7 @@ P_vecP = zeros(6,6, length(tvec));
  x_hatP(:,1) = x_nom(:,1);
  
  %Initializing P to be somewhat Large
- P_vecP(:,:,1) = 100* eye(6);
+ P_vecP(:,:,1) = 1000* eye(6);
  
  
  %% EXTENDED Kalman Filter Implementation
@@ -159,6 +159,9 @@ P_vecP = zeros(6,6, length(tvec));
     %Nonlinear Measurement Innovation
     eytil_kp1 = y_gt(:,ii+1)  -  yHat_kp1Min;
     
+    eytil_kp1(1) = wrapToPi(eytil_kp1(1));
+    eytil_kp1(3) = wrapToPi(eytil_kp1(3));
+    
     
     %Kalman Gain
     K_kp1 = P_kp1Min * Htilde_kp1' * inv( Htilde_kp1 * P_kp1Min *  Htilde_kp1'  + Rtrue);
@@ -186,6 +189,10 @@ end
 %% Calculate Estimation Error
 errorVec = x_gt - x_hatP;
  
+%Wrap errorVector States
+errorVec(3,:) =wrapToPi(errorVec(3,:));
+errorVec(6,:) = wrapToPi(errorVec(6,:));
+
  
 %% Plotting State Estimation Errors
 figure()
@@ -203,7 +210,7 @@ plot(tvec, -sigVec(1,:),'-- r');
 xlabel('time (s)');
 ylabel('$e_{\xi_g}$','Interpreter','latex');
 legend('Error', '2Sig Bounds')
-axis([0 100 -20 20])
+axis([0 100 -7 7])
 
 subplot(ax(2));
 hold on;
@@ -212,7 +219,7 @@ plot(tvec, +sigVec(2,:),'-- r');
 plot(tvec, -sigVec(2,:),'-- r');
 xlabel('time (s)')
 ylabel('$e_{\eta_g}$','Interpreter','latex');
-axis([0 100 -20 20])
+axis([0 100 -7 7])
 
 subplot(ax(3));hold on;
 plot(tvec, errorVec(3,:));
@@ -220,7 +227,7 @@ plot(tvec, +sigVec(3,:),'-- r');
 plot(tvec, -sigVec(3,:),'-- r');
 xlabel('time (s)')
 ylabel('$e_{\theta_g}$','Interpreter','latex');
-axis([0 100 -2 2])
+axis([0 100 -.5 .5])
 
 subplot(ax(4));hold on;
 plot(tvec, errorVec(4,:));
@@ -228,7 +235,7 @@ plot(tvec, +sigVec(4,:),'-- r');
 plot(tvec, -sigVec(4,:),'-- r');
 xlabel('time (s)')
 ylabel('$e_{\xi_a}$','Interpreter','latex');
-axis([0 100 -20 20])
+axis([0 100 -7 7])
 
 subplot(ax(5));hold on;
 % plot(tvec,x_out(5,:));
@@ -246,7 +253,7 @@ plot(tvec, +sigVec(6,:),'-- r');
 plot(tvec, -sigVec(6,:),'-- r');
 xlabel('time (s)')
 ylabel('$e_{\theta_a}$','Interpreter','latex');
- axis([0 100 -2 2])
+ axis([0 100 -.5 .5])
 
 
 %% Plotting States
@@ -268,7 +275,7 @@ plot(tvec, x_gt(1,:));
 xlabel('time (s)');
 ylabel('$e_{\xi_g}$','Interpreter','latex');
 legend('Estimated', '2Sig Bounds', '', 'Ground Truth')
-axis([0 100 -20 20])
+axis([0 100 0 20])
 
 subplot(ax(2));
 hold on;
@@ -302,7 +309,7 @@ plot(tvec, x_gt(4,:));
 %plot(tvec, -sigVec(4,:),'-- r');
 xlabel('time (s)')
 ylabel('$e_{\xi_a}$','Interpreter','latex');
-axis([0 100 -110 110])
+axis([0 100 -110 130])
 
 subplot(ax(5));hold on;
 plot(tvec, x_hatP(5,:));
@@ -313,7 +320,7 @@ plot(tvec, x_gt(5,:));
 %plot(tvec, -sigVec(5,:),'-- r');
 xlabel('time (s)')
 ylabel('$e_{\eta_a}$','Interpreter','latex');
-axis([0 100 -110 110])
+axis([0 100 -110 130])
 
 subplot(ax(6));hold on;
 plot(tvec, x_hatP(6,:));

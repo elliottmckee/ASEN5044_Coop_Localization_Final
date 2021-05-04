@@ -175,7 +175,7 @@ save('simulated_groundtruth', 'x_gt', 'y_gt', 'x_nom', 'y_nom')
 
 %% TOTAL STATE Plotting
 figure()
-sgtitle('TOTAL SYSTEM STATES vs. Time, Nominal vs. WithNoise')
+sgtitle('TOTAL SYSTEM STATES vs. Time, Nominal vs. Ground Truth')
 
 %% AGV States
 % AGV East Position
@@ -186,7 +186,7 @@ plot(tvec, x_nom(1,:), '--')
 xlabel('Time [s]')
 ylabel('$\xi_g$ [m] ', 'interpreter', 'latex')
 legend('Ground Truth', 'Nominal', 'location', 'northeast')
-axis([0 100 10 16])
+%axis([0 100 10 16])
 
 % AGV North Position
 subplot(6,1,2)
@@ -195,7 +195,7 @@ plot(tvec, x_gt(2,:))
 plot(tvec, x_nom(2,:), '--')
 xlabel('Time [s]')
 ylabel('$\eta_g$ [m] ', 'interpreter', 'latex')
-axis([0 100 -2 4])
+%axis([0 100 -2 4])
 
 % AGV Orientation
 subplot(6,1,3)
@@ -204,7 +204,7 @@ plot(tvec, x_gt(3,:))
 plot(tvec, x_nom(3,:), '--')
 xlabel('Time [s]')
 ylabel('$\theta_g$ [RAD] ', 'interpreter', 'latex')
-axis([0 100 -3 3])
+%axis([0 100 -3 3])
 
 
 %% UAV  States
@@ -215,7 +215,7 @@ plot(tvec, x_gt(4,:))
 plot(tvec, x_nom(4,:), '--')
 xlabel('Time [s]')
 ylabel('$\xi_a$ [m] ', 'interpreter', 'latex')
-axis([0 100 -60 150])
+%axis([0 100 -60 150])
 
 % UAV North Position
 subplot(6,1,5)
@@ -224,7 +224,7 @@ plot(tvec, x_gt(5,:))
 plot(tvec, x_nom(5,:), '--')
 xlabel('Time [s]')
 ylabel('$\eta_a$ [m] ', 'interpreter', 'latex')
-axis([0 100 -100 100])
+%axis([0 100 -100 100])
 
 % UAV Orientation
 subplot(6,1,6)
@@ -233,7 +233,7 @@ plot(tvec, x_gt(6,:))
 plot(tvec, x_nom(6,:), '--')
 xlabel('Time [s]')
 ylabel('$\theta_a$ [RAD] ', 'interpreter', 'latex')
-axis([0 100 -3 3])
+%axis([0 100 -3 3])
 
 
 
@@ -241,7 +241,7 @@ axis([0 100 -3 3])
 
 %% MEASUREMENT STATE Plotting
 figure()
-sgtitle('MEASUREMENTS vs. Time, Nominal vs. WithNoise')
+sgtitle('MEASUREMENTS vs. Time, Nominal vs. Ground Truth')
 
 %% AGV States
 % 1st Measure
@@ -251,7 +251,7 @@ plot(tvec, y_gt(1,:))
 plot(tvec, y_nom(1,:), '--')
 xlabel('Time [s]')
 ylabel('$\gamma_{ag}$ [RAD] ', 'interpreter', 'latex')
-legend('Simulated/With Noise', 'Ground Truth')
+legend('Ground Truth/With Noise', 'Nominal')
 %axis([0 100 -1 1])
 
 % 2nd Measure

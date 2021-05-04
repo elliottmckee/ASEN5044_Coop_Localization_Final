@@ -9,8 +9,8 @@
 
 
 %% Housekeeping
-clc;clear;%close all;
-
+%clc;clear;%close all;
+clear;
 
 %% Load in Simulated Ground Truth Data
 load('cooplocalization_finalproj_KFdata.mat')
@@ -108,7 +108,7 @@ h = @(X)     [ atan2((X(5) - X(2) ),  ( X(4) - X(1))) - X(3);
                 
 %% TMT Setup
 %Number of Runs
-N = 25;
+N = 250;
 
 
 %Initialize NEES and NIS Full Solution Vectors
@@ -117,8 +117,13 @@ eps_y_TOTAL = zeros(N, length(tvec));
 
 for test = 1:N
     
-    %Generate new Ground Truth
-    [x_gt, y_gt] = generateGroundTruth();
+    %% Generate Ground Truth
+    
+    %Assume P0
+    P0 = diag([6.25 6.252 .03 6.25 6.25 .03]) ;
+    %Generate GroundTruth
+    [x_gt, y_gt] = generateGroundTruthEKF(x0, P0);
+    
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %% EXTENDED KALMAN IMPLEMENTATION
@@ -140,30 +145,31 @@ for test = 1:N
     
     %Initializing P to be somewhat Large
     P_vecP(:,:,1) = 1000* eye(6);
+    P_vecP(:,:,1) = P0;
     
     
     %% EXTENDED Kalman Filter Implementation
     %ASSUMING GAMMA = EYE(6)
     
     
-    %% MATRICES FOR TUNING
+    %% MATRICES TUNING
+    
     %Coarse Tuning
-    QKal = Qtrue*2.5;
-    RKal = Rtrue*.8;
-    
-    %QKal = Qtrue*.7;
-    %RKal = Rtrue*1000;
-    
+    QKal = Qtrue;
+    RKal = Rtrue*.8; 
+   
     %Matrix Q Finer Tuning
-    QKal(1,1) = QKal(1,1)*2
-    
-    %QKal = QKal*5
-    
+    QKal(1,1) = QKal(1,1);
+    QKal(3,3) = QKal(3,3)/1.5;
+    QKal(4,4) = QKal(4,4);
+    QKal(5,5) = QKal(5,5);
+    QKal(5,5) = QKal(5,5);
     
     %Matrix R Tuning
-    %RKal(2,2) = RKal(2,2)/100
-    %RKal(4,4) = RKal(4,4)/100
-    %RKal(5,5) = RKal(5,5)/100
+    RKal(1,1) = RKal(1,1)*8;
+    RKal(2,2) = RKal(2,2)/2;
+    RKal(3,3) = RKal(3,3)*8;
+
     
     
     
@@ -202,6 +208,10 @@ for test = 1:N
         %Nonlinear Measurement Innovation
         eytil_kp1 = y_gt(:,ii+1)  -  yHat_kp1Min;
         
+        %Angle Wrap
+        eytil_kp1(1) = wrapToPi(eytil_kp1(1));
+         eytil_kp1(3) = wrapToPi(eytil_kp1(3));
+        
         %Kalman Gain
         K_kp1 = P_kp1Min * Htilde_kp1' * inv( Htilde_kp1 * P_kp1Min *  Htilde_kp1'  + RKal);
         
@@ -232,6 +242,13 @@ for test = 1:N
     errorVec_x = x_gt - x_hatP;
     errorVec_y = y_gt - y_hatP;
     
+    %Wrap errorVector States
+    errorVec_x(3,:) =wrapToPi(errorVec_x(3,:));
+    errorVec_x(6,:) = wrapToPi(errorVec_x(6,:));
+    
+    errorVec_y(1,:) =wrapToPi(errorVec_y(1,:));
+    errorVec_y(3,:) = wrapToPi(errorVec_y(3,:));
+    
     %%  Calculate NEES and NIS at each step
     eps_x = zeros(1,length(tvec));
     eps_y = zeros(1,length(tvec));
@@ -254,32 +271,51 @@ NEESfinal = mean(eps_x_TOTAL, 1);
 NISfinal = mean(eps_y_TOTAL, 1);
 
 
+%% Determine NEES/NIS Failure Rates
+%NEES Failure Rates
+r1NEES = chi2inv(.05/2, 6*N)/N;
+r2NEES = chi2inv(1-.05/2, 6*N)/N;
+
+%Failure Rate Determination code CREDIT TO MARTIN GRABAU
+NEES_fails_low = sum(NEESfinal<r1NEES);
+NEES_fails_high = sum(NEESfinal>r2NEES);
+NEES_Failure_rate = (NEES_fails_low+NEES_fails_high)/(length(tvec))
+
+
+
+%NIS Failure Rates
+r1NIS = chi2inv(.05/2, 5*N)/N;
+r2NIS = chi2inv(1-.05/2, 5*N)/N;
+
+%Failure Rate Determination code CREDIT TO MARTIN GRABAU
+NIS_fails_low = sum(NISfinal<r1NIS);
+NIS_fails_high = sum(NISfinal>r2NIS);
+NIS_Failure_rate = (NIS_fails_low+NIS_fails_high)/(length(tvec))
+
 
 %% NEES Plotting
-r1 = chi2inv(.05/2, 6*N)/N
-r2 = chi2inv(1-.05/2, 6*N)/N
 
 figure()
 hold on
 
 plot(tvec, NEESfinal, 'o')
-yline(r1, 'r--')
-yline(r2,'r--')
+yline(r1NEES, 'r--')
+yline(r2NEES,'r--')
 
 xlabel('Time')
 ylabel('NEES Statisctic')
 title('NEES Testing')
 
 %% NIS Plotting
-r1 = chi2inv(.05/2, 5*N)/N
-r2 = chi2inv(1-.05/2, 5*N)/N
+r1NIS = chi2inv(.05/2, 5*N)/N;
+r2NIS = chi2inv(1-.05/2, 5*N)/N;
 
 figure()
 hold on
 
 plot(tvec, NISfinal, 'o')
-yline(r1, 'r--')
-yline(r2,'r--')
+yline(r1NIS, 'r--')
+yline(r2NIS,'r--')
 
 xlabel('Time')
 ylabel('NIS Statistic')
@@ -426,6 +462,71 @@ plot(tvec, x_gt(6,:));
 xlabel('time (s)')
 ylabel('$e_{\theta_a}$','Interpreter','latex');
 axis([0 100 -4 4])
+
+
+
+
+
+
+
+%% Plotting Measurement Estimation Errors
+figure()
+sgtitle('EKF - Measurement Errors')
+hold on;
+for k = 1:5
+    ax(k) = subplot(5,1,k);
+end
+
+
+subplot(ax(1));
+hold on;
+plot(tvec, errorVec_y(1,:));
+plot(tvec, +squeeze(S_vec(1,1,:)) ,'-- r');
+plot(tvec, -squeeze(S_vec(1,1,:)) ,'-- r');
+xlabel('time (s)');
+ylabel('$e_{\xi_g}$','Interpreter','latex');
+legend('Error', '2Sig Bounds')
+%([0 100 -20 20])
+
+subplot(ax(2));
+hold on;
+plot(tvec, errorVec_y(2,:));
+plot(tvec, +squeeze(S_vec(2,2,:)),'-- r');
+plot(tvec, -squeeze(S_vec(2,2,:)),'-- r');
+xlabel('time (s)')
+ylabel('$e_{\eta_g}$','Interpreter','latex');
+%axis([0 100 -20 20])
+
+subplot(ax(3));hold on;
+plot(tvec, errorVec_y(3,:));
+plot(tvec, +squeeze(S_vec(3,3,:)),'-- r');
+plot(tvec, -squeeze(S_vec(3,3,:)),'-- r');
+xlabel('time (s)')
+ylabel('$e_{\theta_g}$','Interpreter','latex');
+%axis([0 100 -2 2])
+
+subplot(ax(4));hold on;
+plot(tvec, errorVec_y(4,:));
+plot(tvec, +squeeze(S_vec(4,4,:)),'-- r');
+plot(tvec, -squeeze(S_vec(4,4,:)),'-- r');
+xlabel('time (s)')
+ylabel('$e_{\xi_a}$','Interpreter','latex');
+%axis([0 100 -20 20])
+
+subplot(ax(5));hold on;
+% plot(tvec,x_out(5,:));
+plot(tvec, errorVec_y(5,:));
+plot(tvec, +squeeze(S_vec(5,5,:)),'-- r');
+plot(tvec, -squeeze(S_vec(5,5,:)),'-- r');
+xlabel('time (s)')
+ylabel('$e_{\eta_a}$','Interpreter','latex');
+%axis([0 100 -5 5])
+
+
+
+
+
+
 
 
 

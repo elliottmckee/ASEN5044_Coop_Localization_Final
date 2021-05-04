@@ -1,4 +1,4 @@
-function [x_gt, y_gt] = generateGroundTruth()
+function [x_gt, y_gt] = generateGroundTruth(mu_0, P0)
 %GENERATEGROUNDTRUTH Generates a set of Ground Truth Data, x_gt and y_gt
 
 
@@ -118,7 +118,10 @@ x_nom = x_nom';
 
 % Now for x_gt ground truth
 x_gt = zeros(6,1001);
+
 x_gt(:,1) = x_nom(:,1);
+
+
 for idx = 1:length(tvec)-1
     opts = odeset('RelTol',1e-11,'AbsTol',1e-13);
     [tt,xcheck] = ode45(@(t,x) nonlin_Dynamics(t, x, uVec, L,W(:,idx)), tvec(idx:idx+1), x_gt(:,idx), opts);

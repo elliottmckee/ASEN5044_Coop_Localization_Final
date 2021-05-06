@@ -159,17 +159,16 @@ for test = 1:N
     RKal = Rtrue*.8; 
    
     %Matrix Q Finer Tuning
-    QKal(1,1) = QKal(1,1);
+    %QKal(1,1) = QKal(1,1);
     QKal(3,3) = QKal(3,3)/1.5;
-    QKal(4,4) = QKal(4,4);
-    QKal(5,5) = QKal(5,5);
-    QKal(5,5) = QKal(5,5);
+    %QKal(4,4) = QKal(4,4);
+    %QKal(5,5) = QKal(5,5);
+    %QKal(5,5) = QKal(5,5);
     
     %Matrix R Tuning
     RKal(1,1) = RKal(1,1)*8;
     RKal(2,2) = RKal(2,2)/2;
     RKal(3,3) = RKal(3,3)*8;
-
     
     
     

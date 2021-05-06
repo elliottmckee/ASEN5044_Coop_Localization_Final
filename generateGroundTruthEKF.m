@@ -1,4 +1,4 @@
-function [x_gt, y_gt] = generateGroundTruth(mu_0, P0)
+function [x_gt, y_gt] = generateGroundTruthEKF(mu_0, P0)
 %GENERATEGROUNDTRUTH Generates a set of Ground Truth Data, x_gt and y_gt
 
 

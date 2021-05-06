@@ -122,7 +122,7 @@ P_vecP = zeros(6,6, length(tvec));
  x_hatP(:,1) = x_nom(:,1);
  
  %Initializing P to be somewhat Large
- P_vecP(:,:,1) = 1000* eye(6);
+ P_vecP(:,:,1) = 10* eye(6);
  
  
  %% EXTENDED Kalman Filter Implementation
@@ -131,6 +131,31 @@ P_vecP = zeros(6,6, length(tvec));
  %ODE45 Options
  opts = odeset('RelTol',1e-11,'AbsTol',1e-13);
 
+ 
+ 
+ %% MATRICES TUNING
+    
+    %Coarse Tuning
+    QKal = Qtrue;
+    RKal = Rtrue*.8; 
+   
+    %Matrix Q Finer Tuning
+    %QKal(1,1) = QKal(1,1);
+    QKal(3,3) = QKal(3,3)/1.5;
+    %QKal(4,4) = QKal(4,4);
+    %QKal(5,5) = QKal(5,5);
+    %QKal(5,5) = QKal(5,5);
+    
+    %Matrix R Tuning
+    RKal(1,1) = RKal(1,1)*8;
+    RKal(2,2) = RKal(2,2)/2;
+    RKal(3,3) = RKal(3,3)*8;
+ 
+ 
+ 
+ 
+ 
+ 
  
  for ii = 1:length(tvec)-1
      
@@ -143,7 +168,7 @@ P_vecP = zeros(6,6, length(tvec));
     x_hat_kp1Min(6) = wrapToPi(x_hat_kp1Min(6));
      
     %Predicted Covariance Update
-    P_kp1Min         =  F_tilde(tvec(ii), dt) *  P_vecP(:,:,ii) *  F_tilde(tvec(ii), dt)' + Qtrue;
+    P_kp1Min         =  F_tilde(tvec(ii), dt) *  P_vecP(:,:,ii) *  F_tilde(tvec(ii), dt)' + QKal;
     
     
     %% Measurement Update/Correction
@@ -164,7 +189,7 @@ P_vecP = zeros(6,6, length(tvec));
     
     
     %Kalman Gain
-    K_kp1 = P_kp1Min * Htilde_kp1' * inv( Htilde_kp1 * P_kp1Min *  Htilde_kp1'  + Rtrue);
+    K_kp1 = P_kp1Min * Htilde_kp1' * inv( Htilde_kp1 * P_kp1Min *  Htilde_kp1'  + RKal);
     
     %Update State Estimate and Covariance
     P_vecP(:,:,ii+1) = (eye(6) - K_kp1 * Htilde_kp1) * P_kp1Min;
